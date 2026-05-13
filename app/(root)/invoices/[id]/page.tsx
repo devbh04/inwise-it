@@ -36,10 +36,9 @@ export default function InvoiceViewPage({ params }: { params: Promise<{ id: stri
   }, [id])
 
   const handleDownload = async () => {
-    const el = previewRef.current
-    if (!el) return
+    if (!data) return
     const { generatePDF } = await import("@/lib/pdf")
-    await generatePDF(el, `invoice-${String(data?.serialNumber || 0).padStart(4, "0")}.pdf`)
+    await generatePDF(`invoice-${String(data.serialNumber).padStart(4, "0")}.pdf`, data)
   }
 
   const handleDelete = async () => {

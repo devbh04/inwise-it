@@ -100,10 +100,8 @@ function CreateInvoiceContent() {
   }
 
   const handleDownload = async () => {
-    const el = previewRef.current
-    if (!el) return
     const { generatePDF } = await import("@/lib/pdf")
-    await generatePDF(el, `invoice-${String(data.serialNumber).padStart(4, "0")}.pdf`)
+    await generatePDF(`invoice-${String(data.serialNumber).padStart(4, "0")}.pdf`, data)
   }
 
   const logos = assets.filter(a => a.type === "logo")

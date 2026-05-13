@@ -8,7 +8,7 @@ export function MinimalTemplate({ data }: TemplateProps) {
   const invNumber = `INV-${String(data.serialNumber).padStart(4, "0")}`
 
   return (
-    <div className="bg-white text-gray-800 p-10 font-sans text-sm min-h-[842px] w-[595px]">
+    <div className="bg-white text-gray-800 p-10 font-sans text-sm min-h-[842px] w-full">
       {/* Header — ultra clean */}
       <div className="flex justify-between items-start mb-16">
         <div>

@@ -124,3 +124,26 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Force RGB/hex colors for html2canvas export to avoid lab/oklch parsing issues. */
+  .pdf-export {
+    box-shadow: none !important;
+  }
+  .pdf-export .bg-white { background-color: #ffffff !important; }
+  .pdf-export .text-white { color: #ffffff !important; }
+  .pdf-export .text-white\/70 { color: rgba(255, 255, 255, 0.7) !important; }
+  .pdf-export .text-white\/60 { color: rgba(255, 255, 255, 0.6) !important; }
+  .pdf-export .text-gray-900 { color: #111827 !important; }
+  .pdf-export .text-gray-800 { color: #1f2937 !important; }
+  .pdf-export .text-gray-700 { color: #374151 !important; }
+  .pdf-export .text-gray-600 { color: #4b5563 !important; }
+  .pdf-export .text-gray-500 { color: #6b7280 !important; }
+  .pdf-export .text-gray-400 { color: #9ca3af !important; }
+  .pdf-export .text-gray-300 { color: #d1d5db !important; }
+  .pdf-export .bg-gray-50 { background-color: #f9fafb !important; }
+  .pdf-export .bg-gray-100 { background-color: #f3f4f6 !important; }
+  .pdf-export .border-gray-50 { border-color: #f9fafb !important; }
+  .pdf-export .border-gray-100 { border-color: #f3f4f6 !important; }
+  .pdf-export .border-gray-200 { border-color: #e5e7eb !important; }
+}

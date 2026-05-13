@@ -38,15 +38,8 @@ export default function InvoiceViewPage({ params }: { params: Promise<{ id: stri
   const handleDownload = async () => {
     const el = previewRef.current
     if (!el) return
-    const html2canvas = (await import("html2canvas")).default
-    const jsPDF = (await import("jspdf")).default
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: "#ffffff" })
-    const imgData = canvas.toDataURL("image/png")
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
-    const w = pdf.internal.pageSize.getWidth()
-    const h = (canvas.height * w) / canvas.width
-    pdf.addImage(imgData, "PNG", 0, 0, w, h)
-    pdf.save(`invoice-${String(data?.serialNumber || 0).padStart(4, "0")}.pdf`)
+    const { generatePDF } = await import("@/lib/pdf")
+    await generatePDF(el, `invoice-${String(data?.serialNumber || 0).padStart(4, "0")}.pdf`)
   }
 
   const handleDelete = async () => {
@@ -82,7 +75,7 @@ export default function InvoiceViewPage({ params }: { params: Promise<{ id: stri
             </div>
           </header>
           <div className="flex-1 overflow-y-auto bg-muted/30 p-8 flex justify-center">
-            <div ref={previewRef} className="shadow-lg rounded-lg overflow-hidden">
+            <div ref={previewRef} className="shadow-lg rounded-lg overflow-hidden w-[595px]">
               <InvoicePreview data={data} />
             </div>
           </div>

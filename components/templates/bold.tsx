@@ -5,7 +5,7 @@ interface TemplateProps { data: InvoiceData }
 export function BoldTemplate({ data }: TemplateProps) {
   const inv = `INV-${String(data.serialNumber).padStart(4, "0")}`
   return (
-    <div className="bg-white text-gray-900 p-8 font-sans text-sm min-h-[842px] w-[595px]">
+    <div className="bg-white text-gray-900 p-8 font-sans text-sm min-h-[842px] w-full">
       {/* Large accent title */}
       <div className="mb-8">
         <h1 className="text-4xl font-black uppercase tracking-tight" style={{ color: data.accentColor }}>Invoice</h1>

@@ -8,7 +8,7 @@ export function ModernTemplate({ data }: TemplateProps) {
   const invNumber = `INV-${String(data.serialNumber).padStart(4, "0")}`
 
   return (
-    <div className="bg-white text-gray-900 font-sans text-sm min-h-[842px] w-[595px]">
+    <div className="bg-white text-gray-900 font-sans text-sm min-h-[842px] w-full">
       {/* Full-width accent header */}
       <div className="px-8 py-6" style={{ backgroundColor: data.accentColor }}>
         <div className="flex justify-between items-center">

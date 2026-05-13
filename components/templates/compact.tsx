@@ -5,7 +5,7 @@ interface TemplateProps { data: InvoiceData }
 export function CompactTemplate({ data }: TemplateProps) {
   const inv = `INV-${String(data.serialNumber).padStart(4, "0")}`
   return (
-    <div className="bg-white text-gray-900 p-6 font-sans text-xs min-h-[842px] w-[595px]">
+    <div className="bg-white text-gray-900 p-6 font-sans text-xs min-h-[842px] w-full">
       <div className="grid grid-cols-2 gap-4 pb-4 mb-4 border-b-2" style={{ borderColor: data.accentColor }}>
         <div className="flex items-center gap-2">
           {data.companyLogoUrl && <img src={data.companyLogoUrl} alt="" className="h-8 w-auto object-contain" />}

@@ -102,15 +102,8 @@ function CreateInvoiceContent() {
   const handleDownload = async () => {
     const el = previewRef.current
     if (!el) return
-    const html2canvas = (await import("html2canvas")).default
-    const jsPDF = (await import("jspdf")).default
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: "#ffffff" })
-    const imgData = canvas.toDataURL("image/png")
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
-    const w = pdf.internal.pageSize.getWidth()
-    const h = (canvas.height * w) / canvas.width
-    pdf.addImage(imgData, "PNG", 0, 0, w, h)
-    pdf.save(`invoice-${String(data.serialNumber).padStart(4, "0")}.pdf`)
+    const { generatePDF } = await import("@/lib/pdf")
+    await generatePDF(el, `invoice-${String(data.serialNumber).padStart(4, "0")}.pdf`)
   }
 
   const logos = assets.filter(a => a.type === "logo")
@@ -288,7 +281,7 @@ function CreateInvoiceContent() {
             {/* Right — Preview */}
             <div className="w-1/2 overflow-y-auto bg-muted/30 p-6 flex justify-center">
               <div className="sticky top-0">
-                <div ref={previewRef} className="shadow-lg rounded-lg overflow-hidden" style={{ transform: "scale(0.75)", transformOrigin: "top center" }}>
+                <div ref={previewRef} className="shadow-lg rounded-lg overflow-hidden w-[595px]" style={{ transform: "scale(0.75)", transformOrigin: "top center" }}>
                   <InvoicePreview data={data} />
                 </div>
               </div>

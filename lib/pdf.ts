@@ -1,38 +1,76 @@
 export async function generatePDF(element: HTMLElement, filename: string) {
-  const html2canvas = (await import("html2canvas")).default
-  const jsPDF = (await import("jspdf")).default
+  const originalTitle = document.title
+  document.title = filename.replace(/\.pdf$/, '')
 
-  const canvas = await html2canvas(element, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: "#ffffff",
-    logging: false,
-  })
+  const iframe = document.createElement('iframe')
+  iframe.style.position = 'fixed'
+  iframe.style.right = '0'
+  iframe.style.bottom = '0'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.style.border = '0'
+  document.body.appendChild(iframe)
 
-  const imgData = canvas.toDataURL("image/png")
-  const pdf = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4",
-  })
+  const iframeWindow = iframe.contentWindow
+  const iframeDoc = iframeWindow?.document
+  if (!iframeWindow || !iframeDoc) return
 
-  const pageWidth = pdf.internal.pageSize.getWidth()
-  const pageHeight = pdf.internal.pageSize.getHeight()
-  const imgHeight = (canvas.height * pageWidth) / canvas.width
+  // Clone the target element
+  const clone = element.cloneNode(true) as HTMLElement
 
-  // If the image is taller than one page, we need multiple pages
-  let heightLeft = imgHeight
-  let position = 0
+  // Force the clone to fill the full page width
+  clone.style.width = '100%'
+  clone.style.maxWidth = '100%'
+  clone.style.boxShadow = 'none'
+  clone.style.borderRadius = '0'
+  clone.style.margin = '0'
+  clone.style.overflow = 'visible'
 
-  pdf.addImage(imgData, "PNG", 0, position, pageWidth, imgHeight)
-  heightLeft -= pageHeight
+  // Copy all stylesheets from the parent document
+  const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+    .map(style => style.cloneNode(true))
 
-  while (heightLeft > 0) {
-    position = heightLeft - imgHeight
-    pdf.addPage()
-    pdf.addImage(imgData, "PNG", 0, position, pageWidth, imgHeight)
-    heightLeft -= pageHeight
-  }
+  iframeDoc.open()
+  iframeDoc.write('<html><head></head><body></body></html>')
+  iframeDoc.close()
 
-  pdf.save(filename)
+  styles.forEach(style => iframeDoc.head.appendChild(style))
+
+  const printStyle = iframeDoc.createElement('style')
+  printStyle.textContent = `
+    @page { 
+      margin: 0; 
+      size: A4;
+    }
+    html, body { 
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      background: white !important;
+      -webkit-print-color-adjust: exact !important; 
+      print-color-adjust: exact !important; 
+    }
+    body > * {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    * {
+      -webkit-print-color-adjust: exact !important; 
+      print-color-adjust: exact !important;
+    }
+  `
+  iframeDoc.head.appendChild(printStyle)
+  iframeDoc.body.appendChild(clone)
+
+  // Wait for styles + images to load
+  await new Promise(resolve => setTimeout(resolve, 600))
+
+  iframeWindow.focus()
+  iframeWindow.print()
+
+  // Cleanup after dialog closes
+  setTimeout(() => {
+    document.body.removeChild(iframe)
+    document.title = originalTitle
+  }, 1000)
 }

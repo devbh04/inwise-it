@@ -1,3 +1,10 @@
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
+onlyBuiltDependencies:
+  - '@clerk/shared'
+  - '@prisma/engines'
+  - better-sqlite3
+  - core-js
+  - prisma

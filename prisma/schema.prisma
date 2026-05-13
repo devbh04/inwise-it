@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  userId        String
+  serialNumber  Int
+  templateId    String   @default("classic")
+  accentColor   String   @default("#7c3aed")
+
+  // Company
+  companyName    String   @default("")
+  companyAddress String   @default("")
+  companyLogoId  String?
+  companySigId   String?
+  companyFields  String   @default("[]")
+
+  // Client
+  clientName     String   @default("")
+  clientAddress  String   @default("")
+  clientFields   String   @default("[]")
+
+  // Invoice meta
+  date           DateTime @default(now())
+  dueDate        DateTime?
+  currency       String   @default("USD")
+  notes          String?
+  terms          String?
+
+  // Line items stored as JSON string
+  items          String   @default("[]")
+
+  // Totals
+  subtotal       Float    @default(0)
+  taxRate        Float    @default(0)
+  taxAmount      Float    @default(0)
+  discount       Float    @default(0)
+  total          Float    @default(0)
+
+  status         String   @default("draft")
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Asset {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  type      String
+  dataUrl   String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

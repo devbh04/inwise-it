@@ -29,6 +29,7 @@ function CreateInvoiceContent() {
   const [saving, setSaving] = useState(false)
   const [assets, setAssets] = useState<{ id: string; name: string; type: string; dataUrl: string }[]>([])
   const [hasLoaded, setHasLoaded] = useState(false)
+  const [mobileView, setMobileView] = useState<"edit" | "preview">("edit")
 
   useEffect(() => { fetch("/api/assets").then(r => r.json()).then(setAssets).catch(() => {}) }, [])
 
@@ -131,22 +132,29 @@ function CreateInvoiceContent() {
     <div className="bg-sidebar">
       <div className="flex flex-col h-svh rounded-3xl bg-background border-8 border-sidebar">
         <div className="border rounded-xl flex-1 flex flex-col overflow-hidden">
-          <header className="flex items-center gap-2 p-2 px-4 border-b border-border shrink-0">
-            <SidebarTrigger />
-            <div className="flex items-center gap-2 ml-auto">
+          <header className="flex items-center gap-2 p-2 px-4 border-b border-border shrink-0 overflow-x-auto scrollbar-hide">
+            <SidebarTrigger className="shrink-0" />
+            
+            {/* Mobile View Toggle */}
+            <div className="flex lg:hidden bg-muted rounded-lg p-0.5 ml-1 shrink-0">
+              <button onClick={() => setMobileView("edit")} className={`px-2.5 py-1 text-[11px] sm:text-xs font-semibold rounded-md ${mobileView === 'edit' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}>Edit</button>
+              <button onClick={() => setMobileView("preview")} className={`px-2.5 py-1 text-[11px] sm:text-xs font-semibold rounded-md ${mobileView === 'preview' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}>Preview</button>
+            </div>
+
+            <div className="flex items-center gap-1.5 sm:gap-2 ml-auto shrink-0">
               <ModeToggle />
-              <button onClick={handleClear} className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive transition-colors">Clear</button>
-              <button onClick={handleSave} disabled={saving} className="rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
-              <button onClick={handleDownload} className="rounded-lg bg-violet-600 hover:bg-violet-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors flex items-center gap-1.5">
+              <button onClick={handleClear} className="rounded-lg border border-border px-2 sm:px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive transition-colors">Clear</button>
+              <button onClick={handleSave} disabled={saving} className="rounded-lg bg-indigo-600 hover:bg-indigo-700 px-3 sm:px-4 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
+              <button onClick={handleDownload} className="rounded-lg bg-violet-600 hover:bg-violet-700 px-3 sm:px-4 py-1.5 text-xs font-semibold text-white transition-colors flex items-center gap-1.5">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-3.5"><path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" /><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" /></svg>
-                Download
+                <span className="hidden sm:inline">Download</span>
               </button>
             </div>
           </header>
 
           <div className="flex flex-1 overflow-hidden">
             {/* Left — Editor */}
-            <div className="w-1/2 border-r border-border overflow-y-auto p-6 space-y-0">
+            <div className={`w-full lg:w-1/2 border-r border-border overflow-y-auto p-4 sm:p-6 space-y-0 ${mobileView === 'edit' ? 'block' : 'hidden lg:block'}`}>
               {/* Template selector */}
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-semibold">Template</span>
@@ -305,7 +313,7 @@ function CreateInvoiceContent() {
             </div>
 
             {/* Right — Preview */}
-            <div className="w-1/2 overflow-y-auto bg-muted/30 p-6 flex justify-center items-start">
+            <div className={`w-full lg:w-1/2 overflow-auto bg-muted/30 p-4 sm:p-6 justify-center items-start ${mobileView === 'preview' ? 'flex' : 'hidden lg:flex'}`}>
               <div ref={previewRef} className="shadow-lg rounded-lg overflow-hidden" style={{ width: 595, minHeight: 842, transform: "scale(0.75)", transformOrigin: "top center" }}>
                 <InvoicePreview data={data} />
               </div>

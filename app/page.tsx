@@ -61,9 +61,7 @@ const TEMPLATES = [
   { id: "classic", name: "Classic", color: "from-emerald-500 to-teal-400" },
 ]
 
-export default function LandingPage() {
-  const { isLoaded, isSignedIn } = useAuth()
-  const router = useRouter()
+function LandingContent() {
   const [activeTemplate, setActiveTemplate] = useState(TEMPLATES[0])
   const [hoveredElement, setHoveredElement] = useState<string | null>(null)
   
@@ -75,20 +73,6 @@ export default function LandingPage() {
 
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"])
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
-
-  useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      router.push("/invoices")
-    }
-  }, [isLoaded, isSignedIn, router])
-
-  if (!isLoaded || isSignedIn) {
-    return (
-      <div className="flex h-svh w-full items-center justify-center bg-[#09090b]">
-        <div className="size-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-svh bg-[#09090b] text-zinc-50 selection:bg-indigo-500/30 overflow-hidden font-sans">
@@ -491,4 +475,25 @@ export default function LandingPage() {
       </footer>
     </div>
   )
+}
+
+export default function LandingPage() {
+  const { isLoaded, isSignedIn } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.push("/invoices")
+    }
+  }, [isLoaded, isSignedIn, router])
+
+  if (!isLoaded || isSignedIn) {
+    return (
+      <div className="flex h-svh w-full items-center justify-center bg-[#09090b]">
+        <div className="size-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+      </div>
+    )
+  }
+
+  return <LandingContent />
 }

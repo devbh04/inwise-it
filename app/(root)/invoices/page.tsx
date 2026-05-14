@@ -94,8 +94,8 @@ export default function InvoicesPage() {
                   <Link href="/create" className="inline-flex rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Create Invoice</Link>
                 </div>
               ) : (
-                <div className="rounded-xl border border-border overflow-hidden">
-                  <table className="w-full text-sm">
+                <div className="rounded-xl border border-border overflow-hidden overflow-x-auto">
+                  <table className="w-full text-sm min-w-[800px]">
                     <thead>
                       <tr className="bg-muted/50 text-xs text-muted-foreground uppercase tracking-wider">
                         <th className="text-left px-4 py-3 font-medium">Invoice #</th>

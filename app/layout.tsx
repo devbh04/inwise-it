@@ -30,6 +30,9 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className={`${inter.variable} bg-sidebar`} suppressHydrationWarning>
+        <head>
+          <script defer src="https://cloud.umami.is/script.js" data-website-id="c958467d-8661-45aa-b332-a55998990cf4"></script>
+        </head>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >

@@ -33,38 +33,53 @@ function CreateInvoiceContent() {
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [saving, setSaving] = useState(false)
   const [assets, setAssets] = useState<{ id: string; name: string; type: string; dataUrl: string }[]>([])
+  const [isSelectingTheme, setIsSelectingTheme] = useState(false)
+  const [hasLoaded, setHasLoaded] = useState(false)
 
   // Load assets
   useEffect(() => {
-    fetch("/api/assets").then(r => r.json()).then(setAssets).catch(() => {})
+    fetch("/api/assets").then(r => r.json()).then(setAssets).catch(() => { })
   }, [])
 
-  // Load invoice if editing
+  // Load invoice if editing, or from session
   useEffect(() => {
-    if (!editId) return
-    fetch(`/api/invoices/${editId}`)
-      .then(r => r.json())
-      .then(inv => {
-        setData({
-          ...inv,
-          date: inv.date?.split("T")[0] || new Date().toISOString().split("T")[0],
-          dueDate: inv.dueDate?.split("T")[0] || null,
-          items: typeof inv.items === "string" ? JSON.parse(inv.items) : inv.items,
-          companyFields: typeof inv.companyFields === "string" ? JSON.parse(inv.companyFields) : inv.companyFields,
-          clientFields: typeof inv.clientFields === "string" ? JSON.parse(inv.clientFields) : inv.clientFields,
-          companyLogoUrl: null,
-          companySignatureUrl: null,
-        })
-        // Resolve asset URLs
-        if (inv.companyLogoId) {
-          fetch("/api/assets").then(r => r.json()).then((a: typeof assets) => {
-            const logo = a.find((x: typeof assets[0]) => x.id === inv.companyLogoId)
-            const sig = a.find((x: typeof assets[0]) => x.id === inv.companySigId)
-            setData(prev => ({ ...prev, companyLogoUrl: logo?.dataUrl || null, companySignatureUrl: sig?.dataUrl || null }))
+    if (editId) {
+      fetch(`/api/invoices/${editId}`)
+        .then(r => r.json())
+        .then(inv => {
+          setData({
+            ...inv,
+            date: inv.date?.split("T")[0] || new Date().toISOString().split("T")[0],
+            dueDate: inv.dueDate?.split("T")[0] || null,
+            items: typeof inv.items === "string" ? JSON.parse(inv.items) : inv.items,
+            companyFields: typeof inv.companyFields === "string" ? JSON.parse(inv.companyFields) : inv.companyFields,
+            clientFields: typeof inv.clientFields === "string" ? JSON.parse(inv.clientFields) : inv.clientFields,
+            companyLogoUrl: null,
+            companySignatureUrl: null,
           })
-        }
-      })
+          if (inv.companyLogoId) {
+            fetch("/api/assets").then(r => r.json()).then((a: typeof assets) => {
+              const logo = a.find((x: typeof assets[0]) => x.id === inv.companyLogoId)
+              const sig = a.find((x: typeof assets[0]) => x.id === inv.companySigId)
+              setData(prev => ({ ...prev, companyLogoUrl: logo?.dataUrl || null, companySignatureUrl: sig?.dataUrl || null }))
+            })
+          }
+          setHasLoaded(true)
+        })
+    } else {
+      const stored = sessionStorage.getItem("invoice-draft")
+      if (stored) { try { setData(JSON.parse(stored)) } catch {} }
+      else { setIsSelectingTheme(true) }
+      setHasLoaded(true)
+    }
   }, [editId])
+
+  // Auto-save to session storage
+  useEffect(() => {
+    if (!editId && hasLoaded && !isSelectingTheme) {
+      sessionStorage.setItem("invoice-draft", JSON.stringify(data))
+    }
+  }, [data, editId, hasLoaded, isSelectingTheme])
 
   const update = useCallback((partial: Partial<InvoiceData>) => {
     setData(prev => recalculateTotals({ ...prev, ...partial }))
@@ -91,6 +106,7 @@ function CreateInvoiceContent() {
       const method = editId ? "PUT" : "POST"
       const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       if (res.ok) {
+        sessionStorage.removeItem("invoice-draft")
         const inv = await res.json()
         router.push(`/invoices/${inv.id}`)
       }
@@ -102,6 +118,7 @@ function CreateInvoiceContent() {
   const handleDownload = async () => {
     const { generatePDF } = await import("@/lib/pdf")
     await generatePDF(`invoice-${String(data.serialNumber).padStart(4, "0")}.pdf`, data)
+    sessionStorage.removeItem("invoice-draft")
   }
 
   const logos = assets.filter(a => a.type === "logo")
@@ -113,6 +130,35 @@ function CreateInvoiceContent() {
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`size-5 text-muted-foreground transition-transform ${openSections.has(id) ? "rotate-180" : ""}`}><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z" clipRule="evenodd" /></svg>
     </button>
   )
+
+  const selectedTheme = TEMPLATES.find(t => t.id === data.templateId)
+
+  if (isSelectingTheme) {
+    return (
+      <div className="bg-sidebar min-h-svh p-8">
+        <div className="max-w-6xl mx-auto rounded-3xl bg-background border border-border shadow-sm p-8">
+          <div className="flex items-center justify-between mb-8"><h1 className="text-3xl font-bold tracking-tight">Choose a Template</h1><SidebarTrigger /></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 overflow-y-auto pb-8">
+            {TEMPLATES.map((t, idx) => (
+              <div key={t.id} onClick={() => { update({ templateId: t.id, accentColor: t.presets[0].color }); setIsSelectingTheme(false) }} className="cursor-pointer group rounded-xl border border-border bg-card p-4 hover:border-indigo-500 hover:shadow-lg transition-all flex flex-col gap-3">
+                <div className={`aspect-[1/1.3] rounded-lg w-full flex flex-col p-3 relative overflow-hidden ${t.mode === 'dark' ? 'bg-zinc-900' : 'bg-gray-50'}`}>
+                  <div className="w-1/3 h-1.5 rounded mb-3" style={{ backgroundColor: t.presets[0].color }} />
+                  <div className="flex gap-1.5 mb-4"><div className={`w-1/2 h-6 rounded ${t.mode === 'dark' ? 'bg-white/10' : 'bg-gray-200'}`} /><div className={`w-1/2 h-6 rounded ${t.mode === 'dark' ? 'bg-white/10' : 'bg-gray-200'}`} /></div>
+                  <div className="flex flex-col gap-1.5 flex-1"><div className={`w-full h-3 rounded ${t.mode === 'dark' ? 'bg-white/5' : 'bg-gray-100'}`} /><div className={`w-full h-3 rounded ${t.mode === 'dark' ? 'bg-white/5' : 'bg-gray-100'}`} /><div className={`w-3/4 h-3 rounded ${t.mode === 'dark' ? 'bg-white/5' : 'bg-gray-100'}`} /></div>
+                  <div className="w-1/4 h-2.5 rounded mt-auto self-end" style={{ backgroundColor: t.presets[0].color }} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div><h3 className="font-semibold text-sm">{t.name}</h3><p className="text-[10px] text-muted-foreground">{t.description}</p></div>
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full shrink-0">{t.mode}</span>
+                </div>
+                <div className="flex gap-1 pt-2 border-t border-border/50">{t.presets.map((p, i) => <div key={i} className="size-4 rounded-full border border-black/10" style={{ backgroundColor: p.color }} title={p.name} />)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-sidebar">
@@ -145,20 +191,28 @@ function CreateInvoiceContent() {
                 </select>
               </div>
 
-              {/* Color picker */}
+              {/* Color presets + picker */}
               <div className="flex items-center justify-between mb-6">
                 <span className="text-sm font-semibold">Accent Color</span>
-                <div className="relative">
-                  <button onClick={() => setShowColorPicker(!showColorPicker)} className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs">
-                    <div className="size-4 rounded" style={{ backgroundColor: data.accentColor }} />
-                    {data.accentColor}
-                  </button>
-                  {showColorPicker && (
-                    <div className="absolute right-0 top-full mt-2 z-50 bg-popover border border-border rounded-xl p-3 shadow-xl">
-                      <HexColorPicker color={data.accentColor} onChange={c => update({ accentColor: c })} />
-                      <input value={data.accentColor} onChange={e => update({ accentColor: e.target.value })} className="mt-2 w-full rounded border border-border bg-background px-2 py-1 text-xs" />
-                    </div>
-                  )}
+                <div className="flex items-center gap-1.5">
+                  {selectedTheme?.presets.map(p => (
+                    <button key={p.name} onClick={() => update({ accentColor: p.color })} title={p.name}
+                      className={`size-6 rounded-full border shadow-sm transition-all ${data.accentColor === p.color ? 'ring-2 ring-indigo-500 ring-offset-1 border-transparent' : 'border-black/10 hover:scale-110'}`}
+                      style={{ backgroundColor: p.color }} />
+                  ))}
+                  <div className="w-px h-5 bg-border mx-0.5" />
+                  <div className="relative">
+                    <button onClick={() => setShowColorPicker(!showColorPicker)} className="flex items-center gap-1.5 rounded-lg border border-border px-2 py-1 text-xs">
+                      <div className="size-3.5 rounded" style={{ backgroundColor: data.accentColor }} />
+                      {data.accentColor}
+                    </button>
+                    {showColorPicker && (
+                      <div className="absolute right-0 top-full mt-2 z-50 bg-popover border border-border rounded-xl p-3 shadow-xl">
+                        <HexColorPicker color={data.accentColor} onChange={c => update({ accentColor: c })} />
+                        <input value={data.accentColor} onChange={e => update({ accentColor: e.target.value })} className="mt-2 w-full rounded border border-border bg-background px-2 py-1 text-xs" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
+import { Invoice } from "@prisma/client"
 
 // GET /api/invoices — List invoices for current user
 export async function GET(req: NextRequest) {
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
   // Client-side-like search filtering (SQLite doesn't have great full-text search)
   const filtered = q
     ? invoices.filter(
-        (inv) =>
+        (inv: Invoice) =>
           inv.companyName.toLowerCase().includes(q) ||
           inv.clientName.toLowerCase().includes(q) ||
           `INV-${String(inv.serialNumber).padStart(4, "0")}`.toLowerCase().includes(q) ||

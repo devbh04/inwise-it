@@ -51,7 +51,7 @@ export default function InvoicesPage() {
             <SidebarTrigger />
             <div className="ml-auto flex items-center gap-2">
               <ModeToggle />
-              <Link href="/create" className="rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors">
+              <Link href="/templates" className="rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors">
                 + New Invoice
               </Link>
             </div>

@@ -87,6 +87,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarGroupContent>
                         <SidebarMenu>
                             <SidebarMenuItem>
+                                <SidebarMenuButton asChild isActive={pathname.startsWith("/templates")} className="h-10">
+                                    <Link href="/templates">
+                                        <HugeiconsIcon icon={Folder01Icon} size={20} strokeWidth={2.5} />
+                                        <span className="text-sm font-medium">Templates</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
                                 <SidebarMenuButton asChild isActive={pathname.startsWith("/create")} className="h-10">
                                     <Link href="/create">
                                         <HugeiconsIcon icon={ReceiptDollarIcon} size={20} strokeWidth={2.5} />

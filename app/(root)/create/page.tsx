@@ -17,6 +17,13 @@ import {
   updateCustomField,
 } from "@/lib/invoice-helpers"
 import { HexColorPicker } from "react-colorful"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 import { Suspense } from "react"
 
@@ -26,6 +33,7 @@ function CreateInvoiceContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const editId = searchParams.get("edit")
+  const templateParam = searchParams.get("template")
   const previewRef = useRef<HTMLDivElement>(null)
 
   const [data, setData] = useState<InvoiceData>(createDefaultInvoiceData)
@@ -33,7 +41,6 @@ function CreateInvoiceContent() {
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [saving, setSaving] = useState(false)
   const [assets, setAssets] = useState<{ id: string; name: string; type: string; dataUrl: string }[]>([])
-  const [isSelectingTheme, setIsSelectingTheme] = useState(false)
   const [hasLoaded, setHasLoaded] = useState(false)
 
   // Load assets
@@ -41,9 +48,10 @@ function CreateInvoiceContent() {
     fetch("/api/assets").then(r => r.json()).then(setAssets).catch(() => { })
   }, [])
 
-  // Load invoice if editing, or from session
+  // Load invoice data
   useEffect(() => {
     if (editId) {
+      // Editing existing invoice from DB
       fetch(`/api/invoices/${editId}`)
         .then(r => r.json())
         .then(inv => {
@@ -67,19 +75,39 @@ function CreateInvoiceContent() {
           setHasLoaded(true)
         })
     } else {
+      // Load shared draft from session storage
       const stored = sessionStorage.getItem("invoice-draft")
-      if (stored) { try { setData(JSON.parse(stored)) } catch {} }
-      else { setIsSelectingTheme(true) }
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored)
+          // If coming from templates page with a specific template, apply that template to existing data
+          if (templateParam && parsed.templateId !== templateParam) {
+            const tmpl = TEMPLATES.find(t => t.id === templateParam)
+            if (tmpl) {
+              parsed.templateId = templateParam
+              parsed.accentColor = tmpl.presets[0].color
+            }
+          }
+          setData(parsed)
+        } catch {}
+      } else if (templateParam) {
+        // No draft yet, set the template
+        const tmpl = TEMPLATES.find(t => t.id === templateParam)
+        if (tmpl) {
+          setData(prev => recalculateTotals({ ...prev, templateId: templateParam, accentColor: tmpl.presets[0].color }))
+        }
+      }
+      // If no templateParam and no draft, just use the default (classic) — don't redirect
       setHasLoaded(true)
     }
-  }, [editId])
+  }, [editId, templateParam])
 
-  // Auto-save to session storage
+  // Auto-save to single shared session storage key
   useEffect(() => {
-    if (!editId && hasLoaded && !isSelectingTheme) {
+    if (!editId && hasLoaded) {
       sessionStorage.setItem("invoice-draft", JSON.stringify(data))
     }
-  }, [data, editId, hasLoaded, isSelectingTheme])
+  }, [data, editId, hasLoaded])
 
   const update = useCallback((partial: Partial<InvoiceData>) => {
     setData(prev => recalculateTotals({ ...prev, ...partial }))
@@ -133,33 +161,6 @@ function CreateInvoiceContent() {
 
   const selectedTheme = TEMPLATES.find(t => t.id === data.templateId)
 
-  if (isSelectingTheme) {
-    return (
-      <div className="bg-sidebar min-h-svh p-8">
-        <div className="max-w-6xl mx-auto rounded-3xl bg-background border border-border shadow-sm p-8">
-          <div className="flex items-center justify-between mb-8"><h1 className="text-3xl font-bold tracking-tight">Choose a Template</h1><SidebarTrigger /></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 overflow-y-auto pb-8">
-            {TEMPLATES.map((t, idx) => (
-              <div key={t.id} onClick={() => { update({ templateId: t.id, accentColor: t.presets[0].color }); setIsSelectingTheme(false) }} className="cursor-pointer group rounded-xl border border-border bg-card p-4 hover:border-indigo-500 hover:shadow-lg transition-all flex flex-col gap-3">
-                <div className={`aspect-[1/1.3] rounded-lg w-full flex flex-col p-3 relative overflow-hidden ${t.mode === 'dark' ? 'bg-zinc-900' : 'bg-gray-50'}`}>
-                  <div className="w-1/3 h-1.5 rounded mb-3" style={{ backgroundColor: t.presets[0].color }} />
-                  <div className="flex gap-1.5 mb-4"><div className={`w-1/2 h-6 rounded ${t.mode === 'dark' ? 'bg-white/10' : 'bg-gray-200'}`} /><div className={`w-1/2 h-6 rounded ${t.mode === 'dark' ? 'bg-white/10' : 'bg-gray-200'}`} /></div>
-                  <div className="flex flex-col gap-1.5 flex-1"><div className={`w-full h-3 rounded ${t.mode === 'dark' ? 'bg-white/5' : 'bg-gray-100'}`} /><div className={`w-full h-3 rounded ${t.mode === 'dark' ? 'bg-white/5' : 'bg-gray-100'}`} /><div className={`w-3/4 h-3 rounded ${t.mode === 'dark' ? 'bg-white/5' : 'bg-gray-100'}`} /></div>
-                  <div className="w-1/4 h-2.5 rounded mt-auto self-end" style={{ backgroundColor: t.presets[0].color }} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div><h3 className="font-semibold text-sm">{t.name}</h3><p className="text-[10px] text-muted-foreground">{t.description}</p></div>
-                  <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full shrink-0">{t.mode}</span>
-                </div>
-                <div className="flex gap-1 pt-2 border-t border-border/50">{t.presets.map((p, i) => <div key={i} className="size-4 rounded-full border border-black/10" style={{ backgroundColor: p.color }} title={p.name} />)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="bg-sidebar">
       <div className="flex flex-col h-svh rounded-3xl bg-background border-8 border-sidebar">
@@ -183,12 +184,19 @@ function CreateInvoiceContent() {
           <div className="flex flex-1 overflow-hidden">
             {/* Left — Editor */}
             <div className="w-1/2 border-r border-border overflow-y-auto p-6 space-y-0">
-              {/* Template selector */}
+              {/* Template selector — shadcn Select */}
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-semibold">Invoice Template</span>
-                <select value={data.templateId} onChange={e => update({ templateId: e.target.value })} className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs">
-                  {TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
+                <Select value={data.templateId} onValueChange={v => update({ templateId: v, accentColor: TEMPLATES.find(t => t.id === v)?.presets[0].color || data.accentColor })}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TEMPLATES.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Color presets + picker */}
@@ -223,17 +231,27 @@ function CreateInvoiceContent() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs font-medium mb-1 block">Company Logo</label>
-                      <select onChange={e => { const a = logos.find(x => x.id === e.target.value); update({ companyLogoUrl: a?.dataUrl || null }) }} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs">
-                        <option value="">None</option>
-                        {logos.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                      </select>
+                      <Select value="" onValueChange={v => { const a = logos.find(x => x.id === v); update({ companyLogoUrl: a?.dataUrl || null }) }}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="None" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {logos.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <label className="text-xs font-medium mb-1 block">Company Signature</label>
-                      <select onChange={e => { const a = signatures.find(x => x.id === e.target.value); update({ companySignatureUrl: a?.dataUrl || null }) }} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs">
-                        <option value="">None</option>
-                        {signatures.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                      </select>
+                      <Select value="" onValueChange={v => { const a = signatures.find(x => x.id === v); update({ companySignatureUrl: a?.dataUrl || null }) }}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="None" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {signatures.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <div>
@@ -292,10 +310,18 @@ function CreateInvoiceContent() {
                     <div><label className="text-xs font-medium mb-1 block">Date</label><input type="date" value={data.date} onChange={e => update({ date: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" /></div>
                     <div><label className="text-xs font-medium mb-1 block">Due Date</label><input type="date" value={data.dueDate || ""} onChange={e => update({ dueDate: e.target.value || null })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" /></div>
                   </div>
-                  <div><label className="text-xs font-medium mb-1 block">Currency</label>
-                    <select value={data.currency} onChange={e => update({ currency: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                      {CURRENCIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                    </select>
+                  <div>
+                    <label className="text-xs font-medium mb-1 block">Currency</label>
+                    <Select value={data.currency} onValueChange={v => update({ currency: v })}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCIES.map(c => (
+                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               )}

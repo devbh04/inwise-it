@@ -5,7 +5,7 @@ interface TemplateProps {
 }
 
 export function ModernTemplate({ data }: TemplateProps) {
-  const invNumber = `INV-${String(data.serialNumber).padStart(4, "0")}`
+  const invNumber = `${data.invoicePrefix || "INV"}-${String(data.serialNumber).padStart(4, "0")}`
 
   return (
     <div className="bg-white text-gray-900 font-sans text-sm min-h-[842px] w-full">
@@ -23,7 +23,7 @@ export function ModernTemplate({ data }: TemplateProps) {
           </div>
           <div className="text-white text-right text-xs">
             <p className="font-medium">{data.companyName}</p>
-            <p className="text-white/60">{data.companyAddress}</p>
+            <p className="text-white/60 whitespace-pre-line">{data.companyAddress}</p>
           </div>
         </div>
       </div>
@@ -56,10 +56,11 @@ export function ModernTemplate({ data }: TemplateProps) {
             data.items.map((item, i) => (
               <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                 <div className="flex-1">
-                  <p className="font-medium text-sm">{item.description || "—"}</p>
-                  <p className="text-xs text-gray-400">{item.qty} × {formatCurrency(item.price, data.currency)}</p>
+                  <p className="font-medium text-sm">{item.title || "—"}</p>
+                  {item.description && <p className="text-[10px] text-gray-400 whitespace-pre-line">{item.description}</p>}
+                  <p className="text-xs text-gray-400">{item.qty} × {formatCurrency(item.discountedPrice, data.currency)}</p>
                 </div>
-                <p className="font-semibold text-sm">{formatCurrency(item.qty * item.price, data.currency)}</p>
+                <p className="font-semibold text-sm">{formatCurrency(item.qty * item.discountedPrice, data.currency)}</p>
               </div>
             ))
           )}
@@ -78,10 +79,11 @@ export function ModernTemplate({ data }: TemplateProps) {
         </div>
 
         {/* Footer */}
-        {(data.notes || data.terms) && (
+        {(data.paymentTerms || data.notes || data.terms) && (
           <div className="border-t border-gray-100 pt-4 space-y-3 text-xs text-gray-500">
-            {data.notes && <div><span className="font-medium text-gray-700">Notes:</span> {data.notes}</div>}
-            {data.terms && <div><span className="font-medium text-gray-700">Terms:</span> {data.terms}</div>}
+            {data.paymentTerms && <div><span className="font-medium text-gray-700">Payment Terms:</span> <span className="whitespace-pre-line">{data.paymentTerms}</span></div>}
+            {data.notes && <div><span className="font-medium text-gray-700">Notes:</span> <span className="whitespace-pre-line">{data.notes}</span></div>}
+            {data.terms && <div><span className="font-medium text-gray-700">Terms:</span> <span className="whitespace-pre-line">{data.terms}</span></div>}
           </div>
         )}
 

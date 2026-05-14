@@ -3,7 +3,7 @@ import { InvoiceData, formatCurrency } from "@/lib/invoice-types"
 interface TemplateProps { data: InvoiceData }
 
 export function CompactTemplate({ data }: TemplateProps) {
-  const inv = `INV-${String(data.serialNumber).padStart(4, "0")}`
+  const inv = `${data.invoicePrefix || "INV"}-${String(data.serialNumber).padStart(4, "0")}`
   return (
     <div className="bg-white text-gray-900 p-6 font-sans text-xs min-h-[842px] w-full">
       <div className="grid grid-cols-2 gap-4 pb-4 mb-4 border-b-2" style={{ borderColor: data.accentColor }}>
@@ -28,7 +28,7 @@ export function CompactTemplate({ data }: TemplateProps) {
         <thead><tr style={{ backgroundColor: data.accentColor }}><th className="text-left text-white py-1.5 px-2 text-[10px]">Description</th><th className="text-center text-white py-1.5 px-2 text-[10px]">Qty</th><th className="text-right text-white py-1.5 px-2 text-[10px]">Price</th><th className="text-right text-white py-1.5 px-2 text-[10px]">Total</th></tr></thead>
         <tbody>
           {data.items.length === 0 ? <tr><td colSpan={4} className="text-center py-4 text-gray-400">No items</td></tr> : data.items.map((item, i) => (
-            <tr key={i} className={i % 2 === 0 ? "bg-gray-50" : ""}><td className="py-1.5 px-2 border-b border-gray-100">{item.description || "—"}</td><td className="py-1.5 px-2 border-b border-gray-100 text-center">{item.qty}</td><td className="py-1.5 px-2 border-b border-gray-100 text-right">{formatCurrency(item.price, data.currency)}</td><td className="py-1.5 px-2 border-b border-gray-100 text-right font-medium">{formatCurrency(item.qty * item.price, data.currency)}</td></tr>
+            <tr key={i} className={i % 2 === 0 ? "bg-gray-50" : ""}><td className="py-1.5 px-2 border-b border-gray-100"><span className="font-medium">{item.title || "—"}</span>{item.description && <p className="text-[9px] text-gray-400 whitespace-pre-line">{item.description}</p>}</td><td className="py-1.5 px-2 border-b border-gray-100 text-center">{item.qty}</td><td className="py-1.5 px-2 border-b border-gray-100 text-right">{formatCurrency(item.price, data.currency)}</td><td className="py-1.5 px-2 border-b border-gray-100 text-right font-medium">{formatCurrency(item.qty * item.discountedPrice, data.currency)}</td></tr>
           ))}
         </tbody>
       </table>
@@ -40,8 +40,9 @@ export function CompactTemplate({ data }: TemplateProps) {
           <div className="flex justify-between pt-1 mt-1 border-t-2 font-bold text-sm" style={{ borderColor: data.accentColor, color: data.accentColor }}><span>TOTAL</span><span>{formatCurrency(data.total, data.currency)}</span></div>
         </div>
       </div>
-      {data.notes && <p className="text-[10px] text-gray-400 mb-2"><span className="font-medium text-gray-600">Notes:</span> {data.notes}</p>}
-      {data.terms && <p className="text-[10px] text-gray-400"><span className="font-medium text-gray-600">Terms:</span> {data.terms}</p>}
+      {data.paymentTerms && <p className="text-[10px] text-gray-400 mb-2 whitespace-pre-line"><span className="font-medium text-gray-600">Payment Terms:</span> {data.paymentTerms}</p>}
+      {data.notes && <p className="text-[10px] text-gray-400 mb-2 whitespace-pre-line"><span className="font-medium text-gray-600">Notes:</span> {data.notes}</p>}
+      {data.terms && <p className="text-[10px] text-gray-400 whitespace-pre-line"><span className="font-medium text-gray-600">Terms:</span> {data.terms}</p>}
       {data.companySignatureUrl && <div className="mt-6 flex justify-end"><img src={data.companySignatureUrl} alt="" className="h-8 w-auto" /></div>}
     </div>
   )

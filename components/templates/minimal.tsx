@@ -5,7 +5,7 @@ interface TemplateProps {
 }
 
 export function MinimalTemplate({ data }: TemplateProps) {
-  const invNumber = `INV-${String(data.serialNumber).padStart(4, "0")}`
+  const invNumber = `${data.invoicePrefix || "INV"}-${String(data.serialNumber).padStart(4, "0")}`
 
   return (
     <div className="bg-white text-gray-800 p-10 font-sans text-sm min-h-[842px] w-full">
@@ -56,10 +56,10 @@ export function MinimalTemplate({ data }: TemplateProps) {
         ) : (
           data.items.map((item, i) => (
             <div key={i} className="grid grid-cols-12 gap-2 py-3 text-xs border-b border-gray-50">
-              <span className="col-span-6 text-gray-700">{item.description || "—"}</span>
+              <div className="col-span-6 text-gray-700"><span className="font-medium">{item.title || "—"}</span>{item.description && <p className="text-[10px] text-gray-400 whitespace-pre-line">{item.description}</p>}</div>
               <span className="col-span-2 text-center text-gray-500">{item.qty}</span>
               <span className="col-span-2 text-right text-gray-500">{formatCurrency(item.price, data.currency)}</span>
-              <span className="col-span-2 text-right text-gray-700">{formatCurrency(item.qty * item.price, data.currency)}</span>
+              <span className="col-span-2 text-right text-gray-700">{formatCurrency(item.qty * item.discountedPrice, data.currency)}</span>
             </div>
           ))
         )}
@@ -80,8 +80,9 @@ export function MinimalTemplate({ data }: TemplateProps) {
 
       {/* Footer notes */}
       <div className="mt-auto space-y-3 text-[11px] text-gray-400">
-        {data.notes && <p>{data.notes}</p>}
-        {data.terms && <p>{data.terms}</p>}
+        {data.paymentTerms && <p className="whitespace-pre-line">{data.paymentTerms}</p>}
+        {data.notes && <p className="whitespace-pre-line">{data.notes}</p>}
+        {data.terms && <p className="whitespace-pre-line">{data.terms}</p>}
       </div>
 
       {data.companySignatureUrl && (

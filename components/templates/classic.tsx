@@ -5,7 +5,7 @@ interface TemplateProps {
 }
 
 export function ClassicTemplate({ data }: TemplateProps) {
-  const invNumber = `INV-${String(data.serialNumber).padStart(4, "0")}`
+  const invNumber = `${data.invoicePrefix || "INV"}-${String(data.serialNumber).padStart(4, "0")}`
 
   return (
     <div className="bg-white text-gray-900 p-8 font-sans text-sm min-h-[842px] w-full">
@@ -41,7 +41,7 @@ export function ClassicTemplate({ data }: TemplateProps) {
         <div className="border rounded-lg p-4" style={{ borderColor: `${data.accentColor}30` }}>
           <h3 className="text-xs font-semibold mb-2" style={{ color: data.accentColor }}>Billed By</h3>
           <p className="font-medium">{data.companyName || "—"}</p>
-          <p className="text-xs text-gray-500 mt-1">{data.companyAddress || "—"}</p>
+          <p className="text-xs text-gray-500 mt-1 whitespace-pre-line">{data.companyAddress || "—"}</p>
           {data.companyFields.map((f, i) => (
             <p key={i} className="text-xs text-gray-500"><span className="font-medium text-gray-700">{f.label}:</span> {f.value}</p>
           ))}
@@ -49,7 +49,7 @@ export function ClassicTemplate({ data }: TemplateProps) {
         <div className="border rounded-lg p-4" style={{ borderColor: `${data.accentColor}30` }}>
           <h3 className="text-xs font-semibold mb-2" style={{ color: data.accentColor }}>Billed To</h3>
           <p className="font-medium">{data.clientName || "—"}</p>
-          <p className="text-xs text-gray-500 mt-1">{data.clientAddress || "—"}</p>
+          <p className="text-xs text-gray-500 mt-1 whitespace-pre-line">{data.clientAddress || "—"}</p>
           {data.clientFields.map((f, i) => (
             <p key={i} className="text-xs text-gray-500"><span className="font-medium text-gray-700">{f.label}:</span> {f.value}</p>
           ))}
@@ -59,9 +59,10 @@ export function ClassicTemplate({ data }: TemplateProps) {
       {/* Items Table */}
       <div className="mb-8 rounded-lg overflow-hidden">
         <div className="grid grid-cols-12 gap-2 px-4 py-2 text-xs font-semibold text-white" style={{ backgroundColor: data.accentColor }}>
-          <span className="col-span-6">Item</span>
-          <span className="col-span-2 text-center">Qty</span>
+          <span className="col-span-5">Item</span>
+          <span className="col-span-1 text-center">Qty</span>
           <span className="col-span-2 text-right">Price</span>
+          <span className="col-span-2 text-right">Disc.</span>
           <span className="col-span-2 text-right">Total</span>
         </div>
         {data.items.length === 0 ? (
@@ -69,10 +70,11 @@ export function ClassicTemplate({ data }: TemplateProps) {
         ) : (
           data.items.map((item, i) => (
             <div key={i} className="grid grid-cols-12 gap-2 px-4 py-3 text-xs border-b border-gray-100">
-              <span className="col-span-6">{item.description || "—"}</span>
-              <span className="col-span-2 text-center">{item.qty}</span>
+              <div className="col-span-5"><span className="font-medium">{item.title || "—"}</span>{item.description && <p className="text-[10px] text-gray-400 mt-0.5 whitespace-pre-line">{item.description}</p>}</div>
+              <span className="col-span-1 text-center">{item.qty}</span>
               <span className="col-span-2 text-right">{formatCurrency(item.price, data.currency)}</span>
-              <span className="col-span-2 text-right">{formatCurrency(item.qty * item.price, data.currency)}</span>
+              <span className="col-span-2 text-right">{item.discount > 0 ? `-${formatCurrency(item.discount, data.currency)}` : "—"}</span>
+              <span className="col-span-2 text-right font-semibold">{formatCurrency(item.qty * item.discountedPrice, data.currency)}</span>
             </div>
           ))
         )}
@@ -90,17 +92,23 @@ export function ClassicTemplate({ data }: TemplateProps) {
         </div>
       </div>
 
-      {/* Notes & Terms */}
+      {/* Payment Terms, Notes & Terms */}
+      {data.paymentTerms && (
+        <div className="mb-4">
+          <h4 className="text-xs font-semibold text-gray-700 mb-1">Payment Terms</h4>
+          <p className="text-xs text-gray-500 whitespace-pre-line">{data.paymentTerms}</p>
+        </div>
+      )}
       {data.notes && (
         <div className="mb-4">
           <h4 className="text-xs font-semibold text-gray-700 mb-1">Notes</h4>
-          <p className="text-xs text-gray-500 whitespace-pre-wrap">{data.notes}</p>
+          <p className="text-xs text-gray-500 whitespace-pre-line">{data.notes}</p>
         </div>
       )}
       {data.terms && (
         <div>
           <h4 className="text-xs font-semibold text-gray-700 mb-1">Terms & Conditions</h4>
-          <p className="text-xs text-gray-500 whitespace-pre-wrap">{data.terms}</p>
+          <p className="text-xs text-gray-500 whitespace-pre-line">{data.terms}</p>
         </div>
       )}
     </div>

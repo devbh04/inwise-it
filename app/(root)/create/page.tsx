@@ -5,26 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { InvoicePreview } from "@/components/templates"
-import { InvoiceData, TEMPLATES, CURRENCIES, CustomField } from "@/lib/invoice-types"
+import { InvoiceData, TEMPLATES, CURRENCIES } from "@/lib/invoice-types"
 import {
-  createDefaultInvoiceData,
-  recalculateTotals,
-  addItem,
-  removeItem,
-  updateItem,
-  addCustomField,
-  removeCustomField,
-  updateCustomField,
+  createDefaultInvoiceData, recalculateTotals, addItem, removeItem, updateItem,
+  addCustomField, removeCustomField, updateCustomField,
 } from "@/lib/invoice-helpers"
 import { HexColorPicker } from "react-colorful"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Suspense } from "react"
 
 type Section = "company" | "client" | "invoice" | "items" | "additional"
@@ -43,70 +30,57 @@ function CreateInvoiceContent() {
   const [assets, setAssets] = useState<{ id: string; name: string; type: string; dataUrl: string }[]>([])
   const [hasLoaded, setHasLoaded] = useState(false)
 
-  // Load assets
-  useEffect(() => {
-    fetch("/api/assets").then(r => r.json()).then(setAssets).catch(() => { })
-  }, [])
+  useEffect(() => { fetch("/api/assets").then(r => r.json()).then(setAssets).catch(() => {}) }, [])
 
-  // Load invoice data
   useEffect(() => {
     if (editId) {
-      // Editing existing invoice from DB
-      fetch(`/api/invoices/${editId}`)
-        .then(r => r.json())
-        .then(inv => {
-          setData({
-            ...inv,
-            date: inv.date?.split("T")[0] || new Date().toISOString().split("T")[0],
-            dueDate: inv.dueDate?.split("T")[0] || null,
-            items: typeof inv.items === "string" ? JSON.parse(inv.items) : inv.items,
-            companyFields: typeof inv.companyFields === "string" ? JSON.parse(inv.companyFields) : inv.companyFields,
-            clientFields: typeof inv.clientFields === "string" ? JSON.parse(inv.clientFields) : inv.clientFields,
-            companyLogoUrl: null,
-            companySignatureUrl: null,
-          })
-          if (inv.companyLogoId) {
-            fetch("/api/assets").then(r => r.json()).then((a: typeof assets) => {
-              const logo = a.find((x: typeof assets[0]) => x.id === inv.companyLogoId)
-              const sig = a.find((x: typeof assets[0]) => x.id === inv.companySigId)
-              setData(prev => ({ ...prev, companyLogoUrl: logo?.dataUrl || null, companySignatureUrl: sig?.dataUrl || null }))
-            })
-          }
-          setHasLoaded(true)
+      fetch(`/api/invoices/${editId}`).then(r => r.json()).then(inv => {
+        setData({
+          ...inv,
+          invoicePrefix: inv.invoicePrefix || "INV",
+          isDarkMode: inv.isDarkMode ?? false,
+          paymentTerms: inv.paymentTerms || null,
+          date: inv.date?.split("T")[0] || new Date().toISOString().split("T")[0],
+          dueDate: inv.dueDate?.split("T")[0] || null,
+          items: (typeof inv.items === "string" ? JSON.parse(inv.items) : inv.items).map((it: any) => ({
+            title: it.title || it.description || "", description: it.description || "",
+            qty: it.qty || 0, price: it.price || 0, discount: it.discount || 0,
+            discountedPrice: (it.price || 0) - (it.discount || 0),
+          })),
+          companyFields: typeof inv.companyFields === "string" ? JSON.parse(inv.companyFields) : inv.companyFields,
+          clientFields: typeof inv.clientFields === "string" ? JSON.parse(inv.clientFields) : inv.clientFields,
+          companyLogoUrl: null, companySignatureUrl: null,
         })
+        if (inv.companyLogoId) {
+          fetch("/api/assets").then(r => r.json()).then((a: typeof assets) => {
+            const logo = a.find((x: typeof assets[0]) => x.id === inv.companyLogoId)
+            const sig = a.find((x: typeof assets[0]) => x.id === inv.companySigId)
+            setData(prev => ({ ...prev, companyLogoUrl: logo?.dataUrl || null, companySignatureUrl: sig?.dataUrl || null }))
+          })
+        }
+        setHasLoaded(true)
+      })
     } else {
-      // Load shared draft from session storage
       const stored = sessionStorage.getItem("invoice-draft")
       if (stored) {
         try {
           const parsed = JSON.parse(stored)
-          // If coming from templates page with a specific template, apply that template to existing data
           if (templateParam && parsed.templateId !== templateParam) {
             const tmpl = TEMPLATES.find(t => t.id === templateParam)
-            if (tmpl) {
-              parsed.templateId = templateParam
-              parsed.accentColor = tmpl.presets[0].color
-            }
+            if (tmpl) { parsed.templateId = templateParam; parsed.accentColor = tmpl.presets[0].color }
           }
           setData(parsed)
         } catch {}
       } else if (templateParam) {
-        // No draft yet, set the template
         const tmpl = TEMPLATES.find(t => t.id === templateParam)
-        if (tmpl) {
-          setData(prev => recalculateTotals({ ...prev, templateId: templateParam, accentColor: tmpl.presets[0].color }))
-        }
+        if (tmpl) setData(prev => recalculateTotals({ ...prev, templateId: templateParam, accentColor: tmpl.presets[0].color }))
       }
-      // If no templateParam and no draft, just use the default (classic) — don't redirect
       setHasLoaded(true)
     }
   }, [editId, templateParam])
 
-  // Auto-save to single shared session storage key
   useEffect(() => {
-    if (!editId && hasLoaded) {
-      sessionStorage.setItem("invoice-draft", JSON.stringify(data))
-    }
+    if (!editId && hasLoaded) sessionStorage.setItem("invoice-draft", JSON.stringify(data))
   }, [data, editId, hasLoaded])
 
   const update = useCallback((partial: Partial<InvoiceData>) => {
@@ -114,43 +88,37 @@ function CreateInvoiceContent() {
   }, [])
 
   const toggleSection = (s: Section) => {
-    setOpenSections(prev => {
-      const next = new Set(prev)
-      next.has(s) ? next.delete(s) : next.add(s)
-      return next
-    })
+    setOpenSections(prev => { const next = new Set(prev); next.has(s) ? next.delete(s) : next.add(s); return next })
   }
 
   const handleSave = async () => {
     setSaving(true)
     try {
-      const body = {
-        ...data,
-        companyFields: data.companyFields,
-        clientFields: data.clientFields,
-        items: data.items,
-      }
       const url = editId ? `/api/invoices/${editId}` : "/api/invoices"
       const method = editId ? "PUT" : "POST"
-      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-      if (res.ok) {
-        sessionStorage.removeItem("invoice-draft")
-        const inv = await res.json()
-        router.push(`/invoices/${inv.id}`)
-      }
-    } finally {
-      setSaving(false)
-    }
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
+      if (res.ok) { sessionStorage.removeItem("invoice-draft"); const inv = await res.json(); router.push(`/invoices/${inv.id}`) }
+    } finally { setSaving(false) }
   }
 
   const handleDownload = async () => {
     const { generatePDF } = await import("@/lib/pdf")
-    await generatePDF(`invoice-${String(data.serialNumber).padStart(4, "0")}.pdf`, data)
+    await generatePDF(`${data.invoicePrefix}-${String(data.serialNumber).padStart(4, "0")}.pdf`, data)
+    sessionStorage.removeItem("invoice-draft")
+  }
+
+  const handleClear = () => {
+    if (!confirm("Clear all invoice data? This cannot be undone.")) return
+    const fresh = createDefaultInvoiceData()
+    fresh.templateId = data.templateId
+    fresh.accentColor = data.accentColor
+    setData(fresh)
     sessionStorage.removeItem("invoice-draft")
   }
 
   const logos = assets.filter(a => a.type === "logo")
   const signatures = assets.filter(a => a.type === "signature")
+  const selectedTheme = TEMPLATES.find(t => t.id === data.templateId)
 
   const SectionHeader = ({ id, label }: { id: Section; label: string }) => (
     <button onClick={() => toggleSection(id)} className="flex w-full items-center justify-between py-4 border-b border-border text-left">
@@ -159,20 +127,16 @@ function CreateInvoiceContent() {
     </button>
   )
 
-  const selectedTheme = TEMPLATES.find(t => t.id === data.templateId)
-
   return (
     <div className="bg-sidebar">
       <div className="flex flex-col h-svh rounded-3xl bg-background border-8 border-sidebar">
         <div className="border rounded-xl flex-1 flex flex-col overflow-hidden">
-          {/* Top bar */}
           <header className="flex items-center gap-2 p-2 px-4 border-b border-border shrink-0">
             <SidebarTrigger />
             <div className="flex items-center gap-2 ml-auto">
               <ModeToggle />
-              <button onClick={handleSave} disabled={saving} className="rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-50">
-                {saving ? "Saving..." : "Save"}
-              </button>
+              <button onClick={handleClear} className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive transition-colors">Clear</button>
+              <button onClick={handleSave} disabled={saving} className="rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
               <button onClick={handleDownload} className="rounded-lg bg-violet-600 hover:bg-violet-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors flex items-center gap-1.5">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-3.5"><path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" /><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" /></svg>
                 Download
@@ -180,26 +144,19 @@ function CreateInvoiceContent() {
             </div>
           </header>
 
-          {/* Split pane */}
           <div className="flex flex-1 overflow-hidden">
             {/* Left — Editor */}
             <div className="w-1/2 border-r border-border overflow-y-auto p-6 space-y-0">
-              {/* Template selector — shadcn Select */}
+              {/* Template selector */}
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-semibold">Invoice Template</span>
+                <span className="text-sm font-semibold">Template</span>
                 <Select value={data.templateId} onValueChange={v => update({ templateId: v, accentColor: TEMPLATES.find(t => t.id === v)?.presets[0].color || data.accentColor })}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TEMPLATES.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent>{TEMPLATES.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
 
-              {/* Color presets + picker */}
+              {/* Accent Color */}
               <div className="flex items-center justify-between mb-6">
                 <span className="text-sm font-semibold">Accent Color</span>
                 <div className="flex items-center gap-1.5">
@@ -232,42 +189,26 @@ function CreateInvoiceContent() {
                     <div>
                       <label className="text-xs font-medium mb-1 block">Company Logo</label>
                       <Select value="" onValueChange={v => { const a = logos.find(x => x.id === v); update({ companyLogoUrl: a?.dataUrl || null }) }}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="None" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          {logos.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                        </SelectContent>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="None" /></SelectTrigger>
+                        <SelectContent><SelectItem value="none">None</SelectItem>{logos.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div>
-                      <label className="text-xs font-medium mb-1 block">Company Signature</label>
+                      <label className="text-xs font-medium mb-1 block">Signature</label>
                       <Select value="" onValueChange={v => { const a = signatures.find(x => x.id === v); update({ companySignatureUrl: a?.dataUrl || null }) }}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="None" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          {signatures.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                        </SelectContent>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="None" /></SelectTrigger>
+                        <SelectContent><SelectItem value="none">None</SelectItem>{signatures.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                   </div>
+                  <div><label className="text-xs font-medium mb-1 block">Company Name</label><textarea value={data.companyName} onChange={e => update({ companyName: e.target.value })} rows={1} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none" placeholder="Your company name" /></div>
+                  <div><label className="text-xs font-medium mb-1 block">Company Address</label><textarea value={data.companyAddress} onChange={e => update({ companyAddress: e.target.value })} rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none" placeholder="123 Main St, City" /></div>
                   <div>
-                    <label className="text-xs font-medium mb-1 block">Company Name</label>
-                    <input value={data.companyName} onChange={e => update({ companyName: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="Your company name" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Company Address</label>
-                    <textarea value={data.companyAddress} onChange={e => update({ companyAddress: e.target.value })} rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none" placeholder="123 Main St, City" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Company Fields</label>
+                    <label className="text-xs font-medium mb-1 block">Custom Fields</label>
                     {data.companyFields.map((f, i) => (
                       <div key={i} className="flex gap-2 mb-2">
-                        <input value={f.label} onChange={e => update({ companyFields: updateCustomField(data.companyFields, i, "label", e.target.value) })} className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs" placeholder="Label" />
-                        <input value={f.value} onChange={e => update({ companyFields: updateCustomField(data.companyFields, i, "value", e.target.value) })} className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs" placeholder="Value" />
+                        <textarea value={f.label} onChange={e => update({ companyFields: updateCustomField(data.companyFields, i, "label", e.target.value) })} rows={1} className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs resize-none" placeholder="Label" />
+                        <textarea value={f.value} onChange={e => update({ companyFields: updateCustomField(data.companyFields, i, "value", e.target.value) })} rows={1} className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs resize-none" placeholder="Value" />
                         <button onClick={() => update({ companyFields: removeCustomField(data.companyFields, i) })} className="text-destructive text-xs px-2">✕</button>
                       </div>
                     ))}
@@ -280,20 +221,14 @@ function CreateInvoiceContent() {
               <SectionHeader id="client" label="Client Details" />
               {openSections.has("client") && (
                 <div className="py-4 space-y-4">
+                  <div><label className="text-xs font-medium mb-1 block">Client Name</label><textarea value={data.clientName} onChange={e => update({ clientName: e.target.value })} rows={1} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none" placeholder="Client name" /></div>
+                  <div><label className="text-xs font-medium mb-1 block">Client Address</label><textarea value={data.clientAddress} onChange={e => update({ clientAddress: e.target.value })} rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none" placeholder="Client address" /></div>
                   <div>
-                    <label className="text-xs font-medium mb-1 block">Client Name</label>
-                    <input value={data.clientName} onChange={e => update({ clientName: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="Client name" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Client Address</label>
-                    <textarea value={data.clientAddress} onChange={e => update({ clientAddress: e.target.value })} rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none" placeholder="Client address" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Client Fields</label>
+                    <label className="text-xs font-medium mb-1 block">Custom Fields</label>
                     {data.clientFields.map((f, i) => (
                       <div key={i} className="flex gap-2 mb-2">
-                        <input value={f.label} onChange={e => update({ clientFields: updateCustomField(data.clientFields, i, "label", e.target.value) })} className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs" placeholder="Label" />
-                        <input value={f.value} onChange={e => update({ clientFields: updateCustomField(data.clientFields, i, "value", e.target.value) })} className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs" placeholder="Value" />
+                        <textarea value={f.label} onChange={e => update({ clientFields: updateCustomField(data.clientFields, i, "label", e.target.value) })} rows={1} className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs resize-none" placeholder="Label" />
+                        <textarea value={f.value} onChange={e => update({ clientFields: updateCustomField(data.clientFields, i, "value", e.target.value) })} rows={1} className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs resize-none" placeholder="Value" />
                         <button onClick={() => update({ clientFields: removeCustomField(data.clientFields, i) })} className="text-destructive text-xs px-2">✕</button>
                       </div>
                     ))}
@@ -306,23 +241,21 @@ function CreateInvoiceContent() {
               <SectionHeader id="invoice" label="Invoice Details" />
               {openSections.has("invoice") && (
                 <div className="py-4 space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div><label className="text-xs font-medium mb-1 block">Prefix</label><textarea value={data.invoicePrefix} onChange={e => update({ invoicePrefix: e.target.value })} rows={1} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none" placeholder="INV" /></div>
+                    <div><label className="text-xs font-medium mb-1 block">Serial #</label><input type="number" value={data.serialNumber} onChange={e => update({ serialNumber: Number(e.target.value) })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" min={1} /></div>
+                    <div><label className="text-xs font-medium mb-1 block">Currency</label>
+                      <Select value={data.currency} onValueChange={v => update({ currency: v })}>
+                        <SelectTrigger className="w-full h-[38px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>{CURRENCIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div><label className="text-xs font-medium mb-1 block">Date</label><input type="date" value={data.date} onChange={e => update({ date: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" /></div>
                     <div><label className="text-xs font-medium mb-1 block">Due Date</label><input type="date" value={data.dueDate || ""} onChange={e => update({ dueDate: e.target.value || null })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" /></div>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Currency</label>
-                    <Select value={data.currency} onValueChange={v => update({ currency: v })}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CURRENCIES.map(c => (
-                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <div><label className="text-xs font-medium mb-1 block">Payment Terms</label><textarea value={data.paymentTerms || ""} onChange={e => update({ paymentTerms: e.target.value })} rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none" placeholder="Net 30, Due on receipt..." /></div>
                 </div>
               )}
 
@@ -331,18 +264,33 @@ function CreateInvoiceContent() {
               {openSections.has("items") && (
                 <div className="py-4 space-y-3">
                   {data.items.map((item, i) => (
-                    <div key={i} className="flex gap-2 items-start">
-                      <input value={item.description} onChange={e => setData(prev => updateItem(prev, i, "description", e.target.value))} className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs" placeholder="Description" />
-                      <input type="number" value={item.qty} onChange={e => setData(prev => updateItem(prev, i, "qty", Number(e.target.value)))} className="w-16 rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-center" min={0} />
-                      <input type="number" value={item.price} onChange={e => setData(prev => updateItem(prev, i, "price", Number(e.target.value)))} className="w-24 rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-right" min={0} step="0.01" />
-                      <button onClick={() => setData(prev => removeItem(prev, i))} className="text-destructive text-xs px-2 py-1.5">✕</button>
+                    <div key={i} className="rounded-lg border border-border p-3 space-y-2">
+                      <div className="flex justify-between items-start">
+                        <textarea value={item.title} onChange={e => setData(prev => updateItem(prev, i, "title", e.target.value))} rows={1} className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold resize-none" placeholder="Item title" />
+                        <button onClick={() => setData(prev => removeItem(prev, i))} className="text-destructive text-xs px-2 py-1.5 ml-2">✕</button>
+                      </div>
+                      <textarea value={item.description} onChange={e => setData(prev => updateItem(prev, i, "description", e.target.value))} rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs resize-none" placeholder="Description (multiline)" />
+                      <div className="flex gap-2">
+                        <div className="flex-1"><label className="text-[10px] text-muted-foreground">Qty</label><input type="number" value={item.qty} onChange={e => setData(prev => updateItem(prev, i, "qty", Number(e.target.value)))} className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-center" min={0} /></div>
+                        <div className="flex-1"><label className="text-[10px] text-muted-foreground">Price</label><input type="number" value={item.price} onChange={e => setData(prev => updateItem(prev, i, "price", Number(e.target.value)))} className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-right" min={0} step="0.01" /></div>
+                        <div className="flex-1"><label className="text-[10px] text-muted-foreground">Discount</label><input type="number" value={item.discount} onChange={e => setData(prev => updateItem(prev, i, "discount", Number(e.target.value)))} className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-right" min={0} step="0.01" /></div>
+                        <div className="flex-1"><label className="text-[10px] text-muted-foreground">Final</label><div className="rounded-lg bg-muted px-2 py-1.5 text-xs text-right font-medium">{item.discountedPrice.toFixed(2)}</div></div>
+                      </div>
                     </div>
                   ))}
                   <button onClick={() => setData(prev => addItem(prev))} className="w-full rounded-lg border border-dashed border-border py-2 text-xs text-muted-foreground hover:text-foreground hover:border-foreground transition-colors">+ Add Item</button>
+
+                  {/* Live totals */}
+                  <div className="border-t border-border pt-3 space-y-1 text-xs">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="font-medium">{data.subtotal.toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Discount</span><span className="font-medium">-{data.discount.toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Tax ({data.taxRate}%)</span><span className="font-medium">{data.taxAmount.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-sm font-bold border-t border-border pt-2 mt-2"><span>Total</span><span>{data.total.toFixed(2)}</span></div>
+                  </div>
                 </div>
               )}
 
-              {/* Additional Information */}
+              {/* Additional */}
               <SectionHeader id="additional" label="Additional Information" />
               {openSections.has("additional") && (
                 <div className="py-4 space-y-4">
@@ -357,11 +305,9 @@ function CreateInvoiceContent() {
             </div>
 
             {/* Right — Preview */}
-            <div className="w-1/2 overflow-y-auto bg-muted/30 p-6 flex justify-center">
-              <div className="sticky top-0">
-                <div ref={previewRef} className="shadow-lg rounded-lg overflow-hidden w-[595px]" style={{ transform: "scale(0.75)", transformOrigin: "top center" }}>
-                  <InvoicePreview data={data} />
-                </div>
+            <div className="w-1/2 overflow-y-auto bg-muted/30 p-6 flex justify-center items-start">
+              <div ref={previewRef} className="shadow-lg rounded-lg overflow-hidden" style={{ width: 595, minHeight: 842, transform: "scale(0.75)", transformOrigin: "top center" }}>
+                <InvoicePreview data={data} />
               </div>
             </div>
           </div>

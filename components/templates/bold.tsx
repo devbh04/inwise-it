@@ -3,7 +3,7 @@ import { InvoiceData, formatCurrency } from "@/lib/invoice-types"
 interface TemplateProps { data: InvoiceData }
 
 export function BoldTemplate({ data }: TemplateProps) {
-  const inv = `INV-${String(data.serialNumber).padStart(4, "0")}`
+  const inv = `${data.invoicePrefix || "INV"}-${String(data.serialNumber).padStart(4, "0")}`
   return (
     <div className="bg-white text-gray-900 p-8 font-sans text-sm min-h-[842px] w-full">
       {/* Large accent title */}
@@ -47,7 +47,7 @@ export function BoldTemplate({ data }: TemplateProps) {
           <div className="px-4 py-8 text-center text-gray-400 text-xs">No items added</div>
         ) : data.items.map((item, i) => (
           <div key={i} className="grid grid-cols-12 gap-2 px-4 py-3 text-xs border-b" style={{ borderColor: `${data.accentColor}15` }}>
-            <span className="col-span-6 font-medium">{item.description || "—"}</span><span className="col-span-2 text-center text-gray-500">{item.qty}</span><span className="col-span-2 text-right text-gray-500">{formatCurrency(item.price, data.currency)}</span><span className="col-span-2 text-right font-semibold">{formatCurrency(item.qty * item.price, data.currency)}</span>
+            <div className="col-span-6"><span className="font-medium">{item.title || "—"}</span>{item.description && <p className="text-[10px] text-gray-400 whitespace-pre-line">{item.description}</p>}</div><span className="col-span-2 text-center text-gray-500">{item.qty}</span><span className="col-span-2 text-right text-gray-500">{formatCurrency(item.price, data.currency)}</span><span className="col-span-2 text-right font-semibold">{formatCurrency(item.qty * item.discountedPrice, data.currency)}</span>
           </div>
         ))}
       </div>
@@ -62,8 +62,9 @@ export function BoldTemplate({ data }: TemplateProps) {
           </div>
         </div>
       </div>
-      {data.notes && <p className="text-xs text-gray-500 mb-2"><span className="font-bold text-gray-700">Notes:</span> {data.notes}</p>}
-      {data.terms && <p className="text-xs text-gray-500"><span className="font-bold text-gray-700">Terms:</span> {data.terms}</p>}
+      {data.paymentTerms && <p className="text-xs text-gray-500 mb-2 whitespace-pre-line"><span className="font-bold text-gray-700">Payment Terms:</span> {data.paymentTerms}</p>}
+      {data.notes && <p className="text-xs text-gray-500 mb-2 whitespace-pre-line"><span className="font-bold text-gray-700">Notes:</span> {data.notes}</p>}
+      {data.terms && <p className="text-xs text-gray-500 whitespace-pre-line"><span className="font-bold text-gray-700">Terms:</span> {data.terms}</p>}
       {data.companySignatureUrl && <div className="mt-8"><img src={data.companySignatureUrl} alt="" className="h-10 w-auto" /><p className="text-[10px] text-gray-400 mt-1">Authorized Signature</p></div>}
     </div>
   )

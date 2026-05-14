@@ -1,7 +1,10 @@
 export interface InvoiceItem {
+  title: string
   description: string
   qty: number
   price: number
+  discount: number
+  discountedPrice: number
 }
 
 export interface CustomField {
@@ -10,9 +13,11 @@ export interface CustomField {
 }
 
 export interface InvoiceData {
+  invoicePrefix: string
   serialNumber: number
   templateId: string
   accentColor: string
+  isDarkMode: boolean
 
   companyName: string
   companyAddress: string
@@ -29,6 +34,7 @@ export interface InvoiceData {
   currency: string
   notes?: string | null
   terms?: string | null
+  paymentTerms?: string | null
 
   items: InvoiceItem[]
 
@@ -40,6 +46,7 @@ export interface InvoiceData {
 
   status: string
 }
+
 
 export const CURRENCIES = [
   { value: "USD", label: "USD ($)", symbol: "$" },
@@ -57,7 +64,7 @@ export function getCurrencySymbol(currency: string): string {
 
 export function formatCurrency(amount: number, currency: string): string {
   const symbol = getCurrencySymbol(currency)
-  return `${symbol}${amount.toFixed(2)}`
+  return `${symbol}${(amount ?? 0).toFixed(2)}`
 }
 
 export interface ColorPreset {

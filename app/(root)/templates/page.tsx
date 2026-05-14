@@ -21,9 +21,11 @@ type CatId = typeof CATEGORIES[number]["id"]
 
 function makeDemoData(templateId: string, accentColor: string): InvoiceData {
   return {
+    invoicePrefix: "INV",
     serialNumber: 42,
     templateId,
     accentColor,
+    isDarkMode: false,
     companyName: "Acme Studio",
     companyAddress: "123 Design Ave\nSan Francisco, CA",
     companyLogoUrl: null,
@@ -37,10 +39,11 @@ function makeDemoData(templateId: string, accentColor: string): InvoiceData {
     currency: "USD",
     notes: null,
     terms: null,
+    paymentTerms: null,
     items: [
-      { description: "UI/UX Design", qty: 3, price: 800 },
-      { description: "Development", qty: 10, price: 120 },
-      { description: "Consulting", qty: 2, price: 250 },
+      { title: "UI/UX Design", description: "Landing page redesign", qty: 3, price: 800, discount: 0, discountedPrice: 800 },
+      { title: "Development", description: "Frontend implementation", qty: 10, price: 120, discount: 0, discountedPrice: 120 },
+      { title: "Consulting", description: "Strategy session", qty: 2, price: 250, discount: 0, discountedPrice: 250 },
     ],
     subtotal: 3900,
     taxRate: 10,

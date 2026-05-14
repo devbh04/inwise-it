@@ -16,7 +16,7 @@ const tw = createTw({
 })
 
 export function InvoicePdfDocument({ data }: { data: InvoiceData }) {
-  const inv = `INV-${String(data.serialNumber).padStart(4, "0")}`
+  const inv = `${data.invoicePrefix || "INV"}-${String(data.serialNumber).padStart(4, "0")}`
 
   return (
     <Document
@@ -104,10 +104,10 @@ export function InvoicePdfDocument({ data }: { data: InvoiceData }) {
           ) : (
             data.items.map((item, i) => (
               <View key={i} style={tw(`flex flex-row px-3 py-2 text-2xs ${i % 2 === 1 ? "bg-neutral-50" : ""}`)}>
-                <Text style={tw("w-[50%]")}>{item.description || "—"}</Text>
+                <View style={tw("w-[50%]")}><Text style={tw("font-semibold")}>{item.title || "—"}</Text>{item.description ? <Text style={tw("text-neutral-400")}>{item.description}</Text> : null}</View>
                 <Text style={tw("w-[15%] text-center")}>{item.qty}</Text>
                 <Text style={tw("w-[17.5%] text-right")}>{formatCurrency(item.price, data.currency)}</Text>
-                <Text style={tw("w-[17.5%] text-right")}>{formatCurrency(item.qty * item.price, data.currency)}</Text>
+                <Text style={tw("w-[17.5%] text-right")}>{formatCurrency(item.qty * item.discountedPrice, data.currency)}</Text>
               </View>
             ))
           )}
@@ -143,7 +143,13 @@ export function InvoicePdfDocument({ data }: { data: InvoiceData }) {
           </View>
         </View>
 
-        {/* Notes & Terms */}
+        {/* Payment Terms, Notes & Terms */}
+        {data.paymentTerms && (
+          <View style={tw("mb-3")}>
+            <Text style={{ ...tw("text-xs font-semibold mb-1"), color: data.accentColor }}>Payment Terms</Text>
+            <Text style={tw("text-2xs text-neutral-500")}>{data.paymentTerms}</Text>
+          </View>
+        )}
         {data.notes && (
           <View style={tw("mb-3")}>
             <Text style={{ ...tw("text-xs font-semibold mb-1"), color: data.accentColor }}>Notes</Text>

@@ -7,19 +7,24 @@ export function ItemsTable({ data, headerBg, headerText, stripeBg, borderColor }
   return (
     <div className="mb-8">
       <div className="grid grid-cols-12 gap-2 px-4 py-2.5 text-xs font-bold" style={{ backgroundColor: headerBg, color: headerText }}>
-        <span className="col-span-6">Item</span>
-        <span className="col-span-2 text-center">Qty</span>
+        <span className="col-span-5">Item</span>
+        <span className="col-span-1 text-center">Qty</span>
         <span className="col-span-2 text-right">Price</span>
+        <span className="col-span-2 text-right">Disc.</span>
         <span className="col-span-2 text-right">Total</span>
       </div>
       {data.items.length === 0 ? (
         <div className="px-4 py-6 text-center text-xs opacity-40">No items added</div>
       ) : data.items.map((item, i) => (
         <div key={i} className="grid grid-cols-12 gap-2 px-4 py-3 text-xs" style={{ backgroundColor: i % 2 === 0 ? stripeBg : "transparent", borderBottom: `1px solid ${borderColor}` }}>
-          <span className="col-span-6">{item.description || "—"}</span>
-          <span className="col-span-2 text-center">{item.qty}</span>
+          <div className="col-span-5">
+            <span className="font-medium">{item.title || "—"}</span>
+            {item.description && <p className="text-[10px] opacity-60 mt-0.5 whitespace-pre-line">{item.description}</p>}
+          </div>
+          <span className="col-span-1 text-center">{item.qty}</span>
           <span className="col-span-2 text-right">{formatCurrency(item.price, data.currency)}</span>
-          <span className="col-span-2 text-right font-semibold">{formatCurrency(item.qty * item.price, data.currency)}</span>
+          <span className="col-span-2 text-right">{item.discount > 0 ? `-${formatCurrency(item.discount, data.currency)}` : "—"}</span>
+          <span className="col-span-2 text-right font-semibold">{formatCurrency(item.qty * item.discountedPrice, data.currency)}</span>
         </div>
       ))}
     </div>
@@ -46,8 +51,9 @@ export function Totals({ data, accentColor, labelClass }: {
 export function Footer({ data, labelClass }: { data: InvoiceData; labelClass: string }) {
   return (
     <>
-      {data.notes && <div className="mb-3"><h4 className="text-xs font-semibold mb-1">Notes</h4><p className={`text-xs ${labelClass}`}>{data.notes}</p></div>}
-      {data.terms && <div className="mb-3"><h4 className="text-xs font-semibold mb-1">Terms & Conditions</h4><p className={`text-xs ${labelClass}`}>{data.terms}</p></div>}
+      {data.paymentTerms && <div className="mb-3"><h4 className="text-xs font-semibold mb-1">Payment Terms</h4><p className={`text-xs whitespace-pre-line ${labelClass}`}>{data.paymentTerms}</p></div>}
+      {data.notes && <div className="mb-3"><h4 className="text-xs font-semibold mb-1">Notes</h4><p className={`text-xs whitespace-pre-line ${labelClass}`}>{data.notes}</p></div>}
+      {data.terms && <div className="mb-3"><h4 className="text-xs font-semibold mb-1">Terms & Conditions</h4><p className={`text-xs whitespace-pre-line ${labelClass}`}>{data.terms}</p></div>}
       {data.companySignatureUrl && (
         <div className="mt-6 flex flex-col items-end">
           <img src={data.companySignatureUrl} alt="Signature" className="h-10 w-auto object-contain mb-1" />
@@ -66,13 +72,13 @@ export function BillingBoxes({ data, accentColor, bg, labelClass }: {
       <div className="rounded-lg p-4" style={{ backgroundColor: bg }}>
         <h3 className="text-xs font-semibold mb-2" style={{ color: accentColor }}>Billed By</h3>
         <p className="font-medium text-sm">{data.companyName || "—"}</p>
-        <p className={`text-xs mt-1 ${labelClass}`}>{data.companyAddress || "—"}</p>
+        <p className={`text-xs mt-1 whitespace-pre-line ${labelClass}`}>{data.companyAddress || "—"}</p>
         {data.companyFields.map((f, i) => <p key={i} className={`text-xs ${labelClass}`}><span className="font-medium">{f.label}:</span> {f.value}</p>)}
       </div>
       <div className="rounded-lg p-4" style={{ backgroundColor: bg }}>
         <h3 className="text-xs font-semibold mb-2" style={{ color: accentColor }}>Billed To</h3>
         <p className="font-medium text-sm">{data.clientName || "—"}</p>
-        <p className={`text-xs mt-1 ${labelClass}`}>{data.clientAddress || "—"}</p>
+        <p className={`text-xs mt-1 whitespace-pre-line ${labelClass}`}>{data.clientAddress || "—"}</p>
         {data.clientFields.map((f, i) => <p key={i} className={`text-xs ${labelClass}`}><span className="font-medium">{f.label}:</span> {f.value}</p>)}
       </div>
     </div>
@@ -80,8 +86,10 @@ export function BillingBoxes({ data, accentColor, bg, labelClass }: {
 }
 
 export function MetaRow({ data, labelClass }: { data: InvoiceData; labelClass: string }) {
+  const invNumber = `${data.invoicePrefix}-${String(data.serialNumber).padStart(4, "0")}`
   return (
     <div className={`flex gap-6 mb-6 text-xs ${labelClass}`}>
+      <div><span className="font-medium">Invoice:</span> {invNumber}</div>
       <div><span className="font-medium">Date:</span> {data.date}</div>
       {data.dueDate && <div><span className="font-medium">Due:</span> {data.dueDate}</div>}
       <div><span className="font-medium">Currency:</span> {data.currency}</div>

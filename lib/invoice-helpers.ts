@@ -2,9 +2,11 @@ import { InvoiceData, InvoiceItem, CustomField } from "@/lib/invoice-types"
 
 export function createDefaultInvoiceData(): InvoiceData {
   return {
+    invoicePrefix: "INV",
     serialNumber: 1,
     templateId: "classic",
     accentColor: "#7c3aed",
+    isDarkMode: false,
     companyName: "",
     companyAddress: "",
     companyLogoUrl: null,
@@ -18,6 +20,7 @@ export function createDefaultInvoiceData(): InvoiceData {
     currency: "USD",
     notes: null,
     terms: null,
+    paymentTerms: null,
     items: [],
     subtotal: 0,
     taxRate: 0,
@@ -29,17 +32,22 @@ export function createDefaultInvoiceData(): InvoiceData {
 }
 
 export function recalculateTotals(data: InvoiceData): InvoiceData {
-  const subtotal = data.items.reduce((sum, item) => sum + item.qty * item.price, 0)
+  // Recalculate each item's discountedPrice first
+  const items = data.items.map(item => {
+    const discountedPrice = item.price - item.discount
+    return { ...item, discountedPrice: Math.max(0, discountedPrice) }
+  })
+  const subtotal = items.reduce((sum, item) => sum + item.qty * item.discountedPrice, 0)
   const afterDiscount = subtotal - data.discount
   const taxAmount = afterDiscount * (data.taxRate / 100)
   const total = afterDiscount + taxAmount
-  return { ...data, subtotal, taxAmount, total }
+  return { ...data, items, subtotal, taxAmount, total }
 }
 
 export function addItem(data: InvoiceData): InvoiceData {
   return recalculateTotals({
     ...data,
-    items: [...data.items, { description: "", qty: 1, price: 0 }],
+    items: [...data.items, { title: "", description: "", qty: 1, price: 0, discount: 0, discountedPrice: 0 }],
   })
 }
 

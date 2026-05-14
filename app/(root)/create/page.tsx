@@ -313,8 +313,8 @@ function CreateInvoiceContent() {
             </div>
 
             {/* Right — Preview */}
-            <div className={`w-full lg:w-1/2 overflow-auto bg-muted/30 p-4 sm:p-6 justify-center items-start ${mobileView === 'preview' ? 'flex' : 'hidden lg:flex'}`}>
-              <div ref={previewRef} className="shadow-lg rounded-lg overflow-hidden" style={{ width: 595, minHeight: 842, transform: "scale(0.75)", transformOrigin: "top center" }}>
+            <div className={`w-full lg:w-1/2 overflow-auto bg-muted/30 p-4 sm:p-6 ${mobileView === 'preview' ? 'block' : 'hidden lg:block'}`}>
+              <div ref={previewRef} className="mx-auto shadow-xl rounded-lg overflow-hidden shrink-0 bg-white" style={{ width: 595, minHeight: 842 }}>
                 <InvoicePreview data={data} />
               </div>
             </div>

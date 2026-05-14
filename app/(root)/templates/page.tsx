@@ -134,7 +134,7 @@ export default function TemplatesPage() {
             {filteredTemplates.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground text-sm">No templates match your search.</div>
             ) : (
-              <div className="max-w-[1400px] mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+              <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {filteredTemplates.map(t => {
                   const preview = makeDemoData(t.id, t.presets[0].color)
                   return (
@@ -144,17 +144,15 @@ export default function TemplatesPage() {
                       className="cursor-pointer group border border-border bg-card hover:border-indigo-500 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col"
                     >
                       {/* Live preview */}
-                      <div className="relative overflow-hidden" style={{ height: 280 }}>
+                      <div className="relative overflow-hidden w-full bg-muted/10 border-b border-border flex justify-center" style={{ height: 320 }}>
                         <div
+                          className="shrink-0"
                           style={{
-                            width: 794,
-                            height: 1123,
-                            transform: "scale(0.34)",
-                            transformOrigin: "top left",
+                            width: 595,
+                            height: 842,
+                            transform: "scale(0.5)",
+                            transformOrigin: "top center",
                             pointerEvents: "none",
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
                           }}
                         >
                           <InvoicePreview data={preview} />

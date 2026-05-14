@@ -142,7 +142,7 @@ export default function LandingPage() {
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]">
             Create invoices
             <br />
-            <span className="bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-indigo-500 via-violet-500 to-purple-500 bg-clip-text text-transparent">
               that get you paid
             </span>
           </h1>
@@ -272,7 +272,7 @@ export default function LandingPage() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <div className="rounded-3xl border border-border/50 bg-gradient-to-b from-indigo-500/5 to-transparent p-12">
+          <div className="rounded-3xl border border-border/50 bg-linear-to-b from-indigo-500/5 to-transparent p-12">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
               Ready to create your first invoice?
             </h2>

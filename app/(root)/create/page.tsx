@@ -246,7 +246,7 @@ function CreateInvoiceContent() {
                     <div><label className="text-xs font-medium mb-1 block">Serial #</label><input type="number" value={data.serialNumber} onChange={e => update({ serialNumber: Number(e.target.value) })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" min={1} /></div>
                     <div><label className="text-xs font-medium mb-1 block">Currency</label>
                       <Select value={data.currency} onValueChange={v => update({ currency: v })}>
-                        <SelectTrigger className="w-full h-[38px]"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-full h-9.5"><SelectValue /></SelectTrigger>
                         <SelectContent>{CURRENCIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>

@@ -179,7 +179,7 @@ export default function TemplatesPage() {
                         </div>
                         <div className="flex gap-1">
                           {t.presets.map((p, i) => (
-                            <div key={i} className="size-4 rounded-full border border-black/10 shadow-sm flex-shrink-0" style={{ backgroundColor: p.color }} title={p.name} />
+                            <div key={i} className="size-4 rounded-full border border-black/10 shadow-sm shrink-0" style={{ backgroundColor: p.color }} title={p.name} />
                           ))}
                         </div>
                       </div>

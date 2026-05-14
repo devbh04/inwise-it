@@ -9,7 +9,7 @@ import {
     DocumentCodeIcon,
 } from "@hugeicons/core-free-icons"
 import { usePathname } from "next/navigation"
-import { UserButton, useUser } from "@clerk/nextjs"
+import { UserButton, useUser, useClerk } from "@clerk/nextjs"
 
 import {
     Sidebar,
@@ -28,6 +28,7 @@ import {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const pathname = usePathname() || ""
     const { user, isSignedIn } = useUser()
+    const { signOut } = useClerk()
 
     return (
         <Sidebar collapsible="icon" {...props}>
@@ -124,6 +125,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 {user?.primaryEmailAddress?.emailAddress}
                             </span>
                         </div>
+                        <button
+                            onClick={() => signOut({ redirectUrl: "/sign-in" })}
+                            title="Sign out"
+                            className="rounded-lg p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors group-data-[collapsible=icon]:hidden"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4">
+                                <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Z" clipRule="evenodd" />
+                                <path fillRule="evenodd" d="M19 10a.75.75 0 0 0-.75-.75H8.704l1.048-.943a.75.75 0 1 0-1.004-1.114l-2.5 2.25a.75.75 0 0 0 0 1.114l2.5 2.25a.75.75 0 1 0 1.004-1.114l-1.048-.943h9.546A.75.75 0 0 0 19 10Z" clipRule="evenodd" />
+                            </svg>
+                        </button>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3 rounded-2xl dark:bg-[#1c1c1e] bg-white/10 p-5 shadow-sm ring-1 ring-white/5">

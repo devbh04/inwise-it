@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Invoice {
@@ -26,11 +26,13 @@ model Invoice {
   clientFields   String   @default("[]")
 
   // Invoice meta
+  invoicePrefix  String   @default("INV")
   date           DateTime @default(now())
   dueDate        DateTime?
   currency       String   @default("USD")
   notes          String?
   terms          String?
+  paymentTerms   String?
 
   // Line items stored as JSON string
   items          String   @default("[]")

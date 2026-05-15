@@ -95,7 +95,7 @@ function LandingContent() {
               Sign In
             </Link>
             <Link
-              href="/sign-up"
+              href="/templates"
               className="relative rounded-full bg-white px-5 py-2 text-sm font-bold text-black transition-transform hover:scale-105 hover:shadow-[0_0_20px_-5px_rgba(255,255,255,0.4)] active:scale-95"
             >
               Get Started
@@ -171,7 +171,7 @@ function LandingContent() {
               className="flex flex-wrap items-center gap-4"
             >
               <Link
-                href="/sign-up"
+                href="/templates"
                 className="group relative inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-sm font-bold text-black transition-all hover:scale-105 active:scale-95"
               >
                 Start Creating Free
@@ -445,7 +445,7 @@ function LandingContent() {
             </p>
             
             <Link
-              href="/sign-up"
+              href="/create"
               className="relative z-10 inline-flex items-center gap-2 rounded-full bg-white px-10 py-5 text-base font-bold text-black transition-transform hover:scale-105 active:scale-95 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
             >
               Create Free Account

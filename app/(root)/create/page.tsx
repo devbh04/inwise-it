@@ -1,7 +1,9 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { useAuth } from "@clerk/nextjs"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { InvoicePreview } from "@/components/templates"
@@ -10,15 +12,27 @@ import {
   createDefaultInvoiceData, recalculateTotals, addItem, removeItem, updateItem,
   addCustomField, removeCustomField, updateCustomField,
 } from "@/lib/invoice-helpers"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { HexColorPicker } from "react-colorful"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Suspense } from "react"
+import { GUEST_DOWNLOAD_LIMIT, getGuestDownloadCount, setGuestDownloadCount } from "@/lib/utils"
 
 type Section = "company" | "client" | "invoice" | "items" | "additional"
 
 function CreateInvoiceContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { isSignedIn } = useAuth()
   const editId = searchParams.get("edit")
   const templateParam = searchParams.get("template")
   const previewRef = useRef<HTMLDivElement>(null)
@@ -30,11 +44,28 @@ function CreateInvoiceContent() {
   const [assets, setAssets] = useState<{ id: string; name: string; type: string; dataUrl: string }[]>([])
   const [hasLoaded, setHasLoaded] = useState(false)
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit")
+  const [guestDownloads, setGuestDownloads] = useState(0)
+  const [showGuestLimitDialog, setShowGuestLimitDialog] = useState(false)
 
-  useEffect(() => { fetch("/api/assets").then(r => r.json()).then(setAssets).catch(() => {}) }, [])
+  useEffect(() => {
+    if (!isSignedIn) return
+    fetch("/api/assets").then(r => r.json()).then(setAssets).catch(() => {})
+  }, [isSignedIn])
+
+  useEffect(() => {
+    if (!isSignedIn) {
+      setGuestDownloads(getGuestDownloadCount())
+      return
+    }
+    setGuestDownloads(0)
+  }, [isSignedIn])
 
   useEffect(() => {
     if (editId) {
+      if (!isSignedIn) {
+        setHasLoaded(true)
+        return
+      }
       fetch(`/api/invoices/${editId}`).then(r => r.json()).then(inv => {
         setData({
           ...inv,
@@ -78,7 +109,7 @@ function CreateInvoiceContent() {
       }
       setHasLoaded(true)
     }
-  }, [editId, templateParam])
+  }, [editId, templateParam, isSignedIn])
 
   useEffect(() => {
     if (!editId && hasLoaded) sessionStorage.setItem("invoice-draft", JSON.stringify(data))
@@ -103,6 +134,16 @@ function CreateInvoiceContent() {
   }
 
   const handleDownload = async () => {
+    if (!isSignedIn) {
+      const current = getGuestDownloadCount()
+      if (current >= GUEST_DOWNLOAD_LIMIT) {
+        setShowGuestLimitDialog(true)
+        return
+      }
+      const next = current + 1
+      setGuestDownloadCount(next)
+      setGuestDownloads(next)
+    }
     const { generatePDF } = await import("@/lib/pdf")
     await generatePDF(`${data.invoicePrefix}-${String(data.serialNumber).padStart(4, "0")}.pdf`, data)
     sessionStorage.removeItem("invoice-draft")
@@ -130,6 +171,27 @@ function CreateInvoiceContent() {
 
   return (
     <div className="bg-sidebar">
+      <AlertDialog open={showGuestLimitDialog} onOpenChange={setShowGuestLimitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4">
+                <path fillRule="evenodd" d="M10 2.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15ZM10 6a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 6Zm0 7.5a.875.875 0 1 0 0-1.75.875.875 0 0 0 0 1.75Z" clipRule="evenodd" />
+              </svg>
+            </AlertDialogMedia>
+            <AlertDialogTitle>Download limit reached</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have used {GUEST_DOWNLOAD_LIMIT} of {GUEST_DOWNLOAD_LIMIT} guest downloads. Create a free account to keep downloading invoices.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Not now</AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Link href="/sign-up">Create free account</Link>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div className="flex flex-col h-svh rounded-3xl bg-background border-8 border-sidebar">
         <div className="border rounded-xl flex-1 flex flex-col overflow-hidden">
           <header className="flex items-center gap-2 p-2 px-4 border-b border-border shrink-0 overflow-x-auto scrollbar-hide">
@@ -145,6 +207,11 @@ function CreateInvoiceContent() {
               <ModeToggle />
               <button onClick={handleClear} className="rounded-lg border border-border px-2 sm:px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive transition-colors">Clear</button>
               <button onClick={handleSave} disabled={saving} className="rounded-lg bg-indigo-600 hover:bg-indigo-700 px-3 sm:px-4 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
+              {!isSignedIn && (
+                <span className={`text-[11px] ${guestDownloads >= GUEST_DOWNLOAD_LIMIT ? "text-destructive" : "text-muted-foreground"}`}>
+                  Downloads: {Math.min(guestDownloads, GUEST_DOWNLOAD_LIMIT)}/{GUEST_DOWNLOAD_LIMIT}
+                </span>
+              )}
               <button onClick={handleDownload} className="rounded-lg bg-violet-600 hover:bg-violet-700 px-3 sm:px-4 py-1.5 text-xs font-semibold text-white transition-colors flex items-center gap-1.5">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-3.5"><path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" /><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" /></svg>
                 <span className="hidden sm:inline">Download</span>
